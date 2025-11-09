@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Epilepsy Prediction</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        padding: 40px;
+        max-width: 600px;
+        width: 100%;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 28px;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 14px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+      }
+
+      input[type="text"]:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      button {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .result-container {
+        margin-top: 30px;
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+
+      .result-container:empty {
+        display: none !important;
+      }
+
+      .diagnosis-card {
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .diagnosis-card.positive {
+        background: #fee;
+        border: 2px solid #e74c3c;
+      }
+
+      .diagnosis-card.negative {
+        background: #efe;
+        border: 2px solid #27ae60;
+      }
+
+      .diagnosis-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+      }
+
+      .diagnosis-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .diagnosis-card.positive .diagnosis-title {
+        color: #e74c3c;
+      }
+
+      .diagnosis-card.negative .diagnosis-title {
+        color: #27ae60;
+      }
+
+      .diagnosis-message {
+        font-size: 14px;
+        color: #555;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #333;
+      }
+
+      .error {
+        padding: 20px;
+        background: #fee;
+        border-radius: 8px;
+        border: 2px solid #e74c3c;
+      }
+
+      .error .result-title {
+        color: #e74c3c;
+        font-weight: 600;
+        margin-bottom: 10px;
+        font-size: 16px;
+      }
+
+      .error-message {
+        color: #333;
+        font-size: 14px;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: 20px;
+        color: #667eea;
+      }
+
+      .loading.show {
+        display: block;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .debug-info {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Epilepsy Detection</h1>
+      <p class="subtitle">Enter the file path to get model Detection</p>
+
+      <form id="predictionForm">
+        <div class="form-group">
+          <label for="edfFilePath">EDF File Path</label>
+          <input
+            type="text"
+            id="edfFilePath"
+            name="edfFilePath"
+            value="data/chb01_03.edf"
+            placeholder="e.g., data/chb01_03.edf"
+            required
+          />
+        </div>
+
+        <button type="submit" id="submitBtn">Get Detection</button>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Processing...</p>
+      </div>
+
+      <div class="result-container" id="resultContainer"></div>
+    </div>
+
+    <script>
+      const submitBtn = document.getElementById("submitBtn");
+      const loading = document.getElementById("loading");
+      const resultContainer = document.getElementById("resultContainer");
+      const form = document.getElementById("predictionForm");
+
+      // Restore previous result if page was reloaded or restored from sessionStorage
+      (function restoreFromSession() {
+        try {
+          const saved = sessionStorage.getItem("predictionResultHTML");
+          const formHidden = sessionStorage.getItem("predictionFormHidden");
+          if (saved) {
+            resultContainer.innerHTML = saved;
+            resultContainer.style.display = "block";
+            // Re-attach back button handler if present
+            const backBtn = document.getElementById("backBtn");
+            if (backBtn) {
+              backBtn.addEventListener("click", () => {
+                form.style.display = "block";
+                resultContainer.innerHTML = "";
+                resultContainer.style.display = "none";
+                try {
+                  sessionStorage.removeItem("predictionResultHTML");
+                  sessionStorage.removeItem("predictionFormHidden");
+                } catch (err) {
+                  console.warn("Could not clear sessionStorage", err);
+                }
+              });
+            }
+          }
+          if (formHidden === "true") {
+            form.style.display = "none";
+          }
+        } catch (err) {
+          console.warn("restoreFromSession error", err);
+        }
+      })();
+
+      // Use form submit handler and prevent default to avoid any page reloads
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Button clicked");
+
+        const edfFilePath = document.getElementById("edfFilePath").value;
+
+        if (!edfFilePath) {
+          alert("Please enter a file path");
+          return;
+        }
+
+        console.log("File path:", edfFilePath);
+
+        // Reset UI
+        resultContainer.innerHTML = "<div class='debug-info'>LOADING...</div>";
+        resultContainer.style.display = "block";
+        loading.classList.add("show");
+        submitBtn.disabled = true;
+
+        try {
+          console.log("Sending request...");
+
+          const response = await fetch(
+            "http://localhost:8000/api/v1/prediction",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                edfFilePath: edfFilePath,
+              }),
+            }
+          );
+
+          console.log("Response status:", response.status);
+          console.log("Response ok:", response.ok);
+
+          const responseText = await response.text();
+          console.log("Response text:", responseText);
+
+          let data;
+          try {
+            data = JSON.parse(responseText);
+            console.log("Parsed data:", data);
+          } catch (parseError) {
+            console.error("JSON parse error:", parseError);
+            throw new Error("Invalid JSON response from server");
+          }
+
+          loading.classList.remove("show");
+
+          if (response.ok && data && data.model_result) {
+            const result = data.model_result;
+            console.log("Model result:", result);
+
+            const isSeizureDetected = result.max_seizure_prob > 0.5;
+            console.log("Is seizure detected:", isSeizureDetected);
+
+            const html = `
+                        <div class="diagnosis-card ${
+                          isSeizureDetected ? "positive" : "negative"
+                        }">
+                            <div class="diagnosis-icon">${
+                              isSeizureDetected ? "⚠️" : "✓"
+                            }</div>
+                            <div class="diagnosis-title">
+                                ${
+                                  isSeizureDetected
+                                    ? "Seizure Detected"
+                                    : "No Seizure Detected"
+                                }
+                            </div>
+                            <div class="diagnosis-message">
+                                ${
+                                  isSeizureDetected
+                                    ? "The patient is affected with seizure activity."
+                                    : "No significant seizure activity detected."
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Total Windows</div>
+                                <div class="stat-value">${
+                                  result.total_windows
+                                }</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Seizure Windows</div>
+                                <div class="stat-value">${
+                                  result.seizure_windows
+                                }</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Seizure Percentage</div>
+                                <div class="stat-value">${result.seizure_percentage.toFixed(
+                                  2
+                                )}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Max Probability</div>
+                                <div class="stat-value">${(
+                                  result.max_seizure_prob * 100
+                                ).toFixed(2)}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Mean Probability</div>
+                                <div class="stat-value">${(
+                                  result.mean_seizure_prob * 100
+                                ).toFixed(2)}%</div>
+                            </div>
+                        </div>
+                    `;
+
+            console.log("Setting innerHTML");
+            form.style.display = "none";
+
+            resultContainer.innerHTML =
+              html +
+              `
+                <div style="margin-top:16px; text-align:center;">
+                  <button id="backBtn" style="padding:10px 14px; border-radius:6px; border:none; background:#667eea; color:#fff; cursor:pointer;">Back</button>
+                </div>
+            `;
+            resultContainer.style.display = "block";
+            console.log("Result should now be visible");
+
+            // Force re-render
+            void resultContainer.offsetHeight;
+
+            console.log(
+              "Container display:",
+              window.getComputedStyle(resultContainer).display
+            );
+            console.log(
+              "Container visibility:",
+              window.getComputedStyle(resultContainer).visibility
+            );
+
+            // Persist the rendered result so it survives reloads
+            try {
+              sessionStorage.setItem(
+                "predictionResultHTML",
+                resultContainer.innerHTML
+              );
+              sessionStorage.setItem("predictionFormHidden", "true");
+            } catch (err) {
+              console.warn("Could not persist result to sessionStorage", err);
+            }
+
+            // Attach back button handler (clear persisted state)
+            const backBtn = document.getElementById("backBtn");
+            if (backBtn) {
+              backBtn.addEventListener("click", () => {
+                // Show form again and clear results
+                form.style.display = "block";
+                resultContainer.innerHTML = "";
+                resultContainer.style.display = "none";
+                try {
+                  sessionStorage.removeItem("predictionResultHTML");
+                  sessionStorage.removeItem("predictionFormHidden");
+                } catch (err) {
+                  console.warn("Could not clear sessionStorage", err);
+                }
+              });
+            }
+          } else {
+            console.log("Response not OK or missing model_result");
+            resultContainer.innerHTML = `
+                        <div class="error">
+                            <div class="result-title">Error</div>
+                            <div class="error-message">${
+                              data.detail || "Unknown error occurred"
+                            }</div>
+                            <div class="debug-info">Response: ${JSON.stringify(
+                              data,
+                              null,
+                              2
+                            )}</div>
+                        </div>
+                    `;
+            resultContainer.style.display = "block";
+          }
+        } catch (error) {
+          console.error("Fetch error:", error);
+          loading.classList.remove("show");
+          resultContainer.innerHTML = `
+                    <div class="error">
+                        <div class="result-title">Connection Error</div>
+                        <div class="error-message">${error.message}</div>
+                        <div class="debug-info">Make sure your backend is running on http://localhost:8000</div>
+                    </div>
+                `;
+          resultContainer.style.display = "block";
+        } finally {
+          submitBtn.disabled = false;
+          console.log("Request completed");
+        }
+      });
+
+      console.log("Script loaded");
+    </script>
+  </body>
+</html>

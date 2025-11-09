@@ -1,0 +1,5 @@
+data/
+inference_results/
+logs/
+temp/
+.DS_Store
